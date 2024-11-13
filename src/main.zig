@@ -166,12 +166,12 @@ fn handleDifferentWeather(app: App, data: Root) !void {
         },
     }
     const normalizedTemperature = if (std.mem.eql(u8, "metric", app.units)) (data.data.values.temperature.? * 1.8) + 32 else data.data.values.temperature.?;
-    try defaultPreset.printOut("   Weather For {s} : {s}\n", .{ data.location.name, getEmoji(normalizedTemperature) });
+    try defaultPreset.printOut("   Weather For {s} : {s}\n", .{ data.location.name, getEmojiTemperature(normalizedTemperature) });
 
     const weatherCode = data.data.values.weatherCode.?;
     const currentWeather = app.weatherCodes.get(weatherCode).?;
 
-    try defaultPreset.printOut("   > Currently it is {s} outside\n", .{currentWeather});
+    try defaultPreset.printOut("   > Currently it is {s} outside {s}\n", .{ currentWeather, getEmojiWeather(weatherCode) });
     try defaultPreset.printOut("   > Tempurature: {d:.0}°", .{data.data.values.temperature.?});
 
     if (std.mem.eql(u8, "imperial", app.units)) {
@@ -195,7 +195,7 @@ fn handleDifferentWeather(app: App, data: Root) !void {
     try defaultPreset.printOut("   > UV Index: {d:.0}\n", .{data.data.values.uvIndex.?});
 }
 
-fn getEmoji(code: f64) []const u8 {
+fn getEmojiTemperature(code: f64) []const u8 {
     switch (@as(i32, @intFromFloat(code))) {
         -150...32 => {
             return "🥶";
@@ -205,6 +205,44 @@ fn getEmoji(code: f64) []const u8 {
         },
         61...85 => {
             return "😁";
+        },
+        else => {
+            return "🥵";
+        },
+    }
+}
+
+fn getEmojiWeather(code: u32) []const u8 {
+    switch (code) {
+        1000 => {
+            return "☀️";
+        },
+        1100 => {
+            return "🌤️";
+        },
+        1101 => {
+            return "⛅";
+        },
+        1102 => {
+            return "🌥️";
+        },
+        1001 => {
+            return "☁️";
+        },
+        2000, 2100 => {
+            return "🌁";
+        },
+        4000, 4001, 4200, 4201 => {
+            return "🌧️";
+        },
+        5000, 5001 => {
+            return "🌨️";
+        },
+        6000, 6001, 6200, 6201, 7000, 7101, 7102 => {
+            return "🧊🌧️";
+        },
+        8000 => {
+            return "⛈️";
         },
         else => {
             return "🥵";
@@ -225,7 +263,7 @@ fn initWeatherCodes(allocator: std.mem.Allocator) !std.AutoArrayHashMap(u32, []c
     try codes.put(0, "unknown");
     try codes.put(1000, "clear");
     try codes.put(1100, "mostly clear");
-    try codes.put(1101, "Partly cloudy");
+    try codes.put(1101, "partly cloudy");
     try codes.put(1102, "mostly cloudy");
     try codes.put(1001, "cloudy");
     try codes.put(2000, "fog");
