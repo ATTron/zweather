@@ -11,7 +11,7 @@ pub const App = struct {
     allocator: std.mem.Allocator,
     units: []const u8,
     c: *Chameleon.RuntimeChameleon,
-    location: []u8,
+    location: []const u8,
     weatherCodes: std.AutoArrayHashMap(u32, []const u8),
 };
 
@@ -56,7 +56,7 @@ pub const Values = struct {
 };
 
 pub fn main() !void {
-    var location: ?[]u8 = undefined;
+    // var location: ?[]u8 = undefined;
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
@@ -91,18 +91,15 @@ pub fn main() !void {
     if (res.args.help != 0) {
         return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
-    if (res.args.location) |l| {
-        location = try allocator.dupe(u8, l);
-    }
-    const units = res.args.units orelse "imperial";
 
-    defer allocator.free(location.?);
+    const location = res.args.location orelse "New York City";
+    const units = res.args.units orelse "imperial";
 
     const app = App{
         .apiKey = apiKey,
         .allocator = allocator,
         .units = units,
-        .location = location.?,
+        .location = location,
         .c = &c,
         .weatherCodes = codes,
     };
@@ -213,7 +210,7 @@ fn getEmoji(code: f64) []const u8 {
     }
 }
 
-fn cleanLocation(allocator: std.mem.Allocator, input: []u8) ![]u8 {
+fn cleanLocation(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
     const size = std.mem.replacementSize(u8, input, " ", "_");
     const output = try allocator.alloc(u8, size);
     _ = std.mem.replace(u8, input, " ", "_", output);

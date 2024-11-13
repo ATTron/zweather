@@ -1,6 +1,6 @@
 # ZWEATHER
 
-A basic weather CLI written in zig. There is a blog post associated with this to introduce some potentially more intermeidate topics in zig including http requests, json parsing, and hashmaps.
+A basic weather CLI written in zig. There is a blog post to go along with this repo to introduce some potentially more intermeidate topics in zig including http requests, json parsing, and hashmaps.
 
 ## Usage
 
