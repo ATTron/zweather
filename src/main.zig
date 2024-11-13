@@ -165,7 +165,8 @@ fn handleDifferentWeather(app: App, data: Root) !void {
             defaultPreset = try app.c.bold().green().createPreset();
         },
     }
-    try defaultPreset.printOut("   Weather For {s} : {s}\n", .{ data.location.name, getEmoji(data.data.values.temperature.?) });
+    const normalizedTemperature = if (std.mem.eql(u8, "metric", app.units)) (data.data.values.temperature.? * 1.8) + 32 else data.data.values.temperature.?;
+    try defaultPreset.printOut("   Weather For {s} : {s}\n", .{ data.location.name, getEmoji(normalizedTemperature) });
 
     const weatherCode = data.data.values.weatherCode.?;
     const currentWeather = app.weatherCodes.get(weatherCode).?;
