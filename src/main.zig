@@ -188,7 +188,7 @@ fn handleDifferentWeather(app: App, data: Root) !void {
         }
     }
 
-    try defaultPreset.printOut("   > Wind Speed: {d:.0}\n", .{data.data.values.windSpeed.?});
+    try defaultPreset.printOut("   > Wind Speed: {d:.0} m/s\n", .{data.data.values.windSpeed.?});
     try defaultPreset.printOut("   > Chance Of Rain: {d:.0}%\n", .{data.data.values.precipitationProbability.?});
     try defaultPreset.printOut("   > Humidity: {d:.0}%\n", .{data.data.values.humidity.?});
     try defaultPreset.printOut("   > UV Index: {d:.0}\n", .{data.data.values.uvIndex.?});
