@@ -197,13 +197,13 @@ fn handleDifferentWeather(app: App, data: Root) !void {
 
 fn getEmoji(code: f64) []const u8 {
     switch (@as(i32, @intFromFloat(code))) {
-        -100.0...32.0 => {
+        -150...32 => {
             return "🥶";
         },
-        33.0...60.0 => {
+        33...60 => {
             return "😬";
         },
-        61.0...85.0 => {
+        61...85 => {
             return "😁";
         },
         else => {
