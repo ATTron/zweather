@@ -56,7 +56,6 @@ pub const Values = struct {
 };
 
 pub fn main() !void {
-    // var location: ?[]u8 = undefined;
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
@@ -150,7 +149,7 @@ fn handleDifferentWeather(app: App, data: Root) !void {
             }
         },
         1101, 1102, 1001, 2000, 2100 => {
-            defaultPreset = try app.c.bold().grey().createPreset();
+            defaultPreset = try app.c.bold().dim().createPreset();
         },
         4000, 4001, 4200, 4201 => {
             defaultPreset = try app.c.bold().blue().createPreset();
@@ -172,7 +171,7 @@ fn handleDifferentWeather(app: App, data: Root) !void {
     const currentWeather = app.weatherCodes.get(weatherCode).?;
 
     try defaultPreset.printOut("   > Currently it is {s} outside {s}\n", .{ currentWeather, getEmojiWeather(weatherCode) });
-    try defaultPreset.printOut("   > Tempurature: {d:.0}°", .{data.data.values.temperature.?});
+    try defaultPreset.printOut("   > Temperature: {d:.0}°", .{data.data.values.temperature.?});
 
     if (std.mem.eql(u8, "imperial", app.units)) {
         try defaultPreset.printOut("F\n", .{});
@@ -181,7 +180,7 @@ fn handleDifferentWeather(app: App, data: Root) !void {
     }
 
     if (data.data.values.temperatureApparent.? != data.data.values.temperature.?) {
-        try defaultPreset.printOut("   > Real Feel: {d:.0}°\n", .{data.data.values.temperatureApparent.?});
+        try defaultPreset.printOut("   > Real Feel: {d:.0}°", .{data.data.values.temperatureApparent.?});
         if (std.mem.eql(u8, "imperial", app.units)) {
             try defaultPreset.printOut("F\n", .{});
         } else {
@@ -235,7 +234,7 @@ fn getEmojiWeather(code: u32) []const u8 {
         4000, 4001, 4200, 4201 => {
             return "🌧️";
         },
-        5000, 5001 => {
+        5000, 5001, 5100, 5101 => {
             return "🌨️";
         },
         6000, 6001, 6200, 6201, 7000, 7101, 7102 => {
@@ -266,22 +265,24 @@ fn initWeatherCodes(allocator: std.mem.Allocator) !std.AutoArrayHashMap(u32, []c
     try codes.put(1101, "partly cloudy");
     try codes.put(1102, "mostly cloudy");
     try codes.put(1001, "cloudy");
-    try codes.put(2000, "fog");
-    try codes.put(2100, "light fog");
-    try codes.put(4000, "dizzle");
-    try codes.put(4001, "rain");
-    try codes.put(4200, "light rain");
-    try codes.put(4201, "heavy rain");
-    try codes.put(5000, "snow");
-    try codes.put(5001, "flurries");
+    try codes.put(2000, "foggy");
+    try codes.put(2100, "lightly foggy");
+    try codes.put(4000, "drizzling");
+    try codes.put(4001, "raining");
+    try codes.put(4200, "light raining");
+    try codes.put(4201, "heavy raining");
+    try codes.put(5000, "snowing");
+    try codes.put(5001, "flurring");
+    try codes.put(5100, "light snowing");
+    try codes.put(5101, "heavy snowing");
     try codes.put(6000, "freezing drizzle");
-    try codes.put(6001, "freezing rain");
-    try codes.put(6200, "light freezing rain");
-    try codes.put(6201, "heavy freezing rain");
-    try codes.put(7000, "ice pellets");
-    try codes.put(7101, "heavy ice pellets");
-    try codes.put(7102, "light ice pellets");
-    try codes.put(8000, "thunderstorm");
+    try codes.put(6001, "freezing raining");
+    try codes.put(6200, "light freezing raining");
+    try codes.put(6201, "heavy freezing raining");
+    try codes.put(7000, "ice pelleting");
+    try codes.put(7101, "heavy ice pelleting");
+    try codes.put(7102, "light ice pelleting");
+    try codes.put(8000, "thunderstorming");
 
     return codes;
 }
