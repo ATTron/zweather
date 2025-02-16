@@ -42,6 +42,7 @@ pub const Values = struct {
     hailSize: ?f64,
     humidity: ?f64,
     precipitationProbability: ?f64,
+    pressureSeaLevel: ?f64,
     pressureSurfaceLevel: ?f64,
     rainIntensity: ?f64,
     sleetIntensity: ?f64,

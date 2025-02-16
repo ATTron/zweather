@@ -24,12 +24,12 @@
     // internet connectivity.
     .dependencies = .{
         .chameleon = .{
-            .url = "git+https://github.com/tr1ckydev/chameleon#d3bee161f700d317ee9c3c73d5fa23b77f878872",
-            .hash = "1220c53fc33154099840f082250ff808ac56439c0349934ea0ae2a4e96c071745b90",
+            .url = "git+https://github.com/tr1ckydev/chameleon#9724f89ca2e56b33609090a6c6c6c1097844d1ee",
+            .hash = "12208314a762057bf5ed82b26b02cbfcf426066b9920bfdd1ddcb68d1d0c55c45ce3",
         },
         .clap = .{
-            .url = "git+https://github.com/Hejsil/zig-clap#cfa86f64ea1e94f8579f46816632f3c6ce7e09ef",
-            .hash = "1220d57cc0b08eb183b11d513eec44c5518468dc5bb39c6fa8a53d1bb62defe6e1a1",
+            .url = "git+https://github.com/Hejsil/zig-clap#068c38f89814079635692c7d0be9f58508c86173",
+            .hash = "1220ff14a53e9a54311c9b0e665afeda2c82cfd6f57e7e1b90768bf13b85f9f29cd0",
         },
     },
     .paths = .{
