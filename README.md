@@ -1,6 +1,7 @@
 # ZWEATHER
 
-A basic weather CLI written in zig. There is a blog post to go along with this repo to introduce some potentially more intermeidate topics in zig including http requests, json parsing, and hashmaps.
+A basic weather CLI written in zig.
+Written to just mess around with building CLIs with zig
 
 ## Usage
 
@@ -17,6 +18,7 @@ zweather -h
 ```
 
 ### Example
+
 ```bash
 zweather -l "new york city"
    Weather For City of New York, New York, United States : 😬
