@@ -57,8 +57,10 @@ pub const Values = struct {
 };
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
 
     const apiKey = std.process.getEnvVarOwned(allocator, "TOMORROW_API_KEY") catch {
         std.log.info("API Key for tomorrow.io not found. Please set the environment variable \"TOMORROW_API_KEY\" to your tomorrow.io API key", .{});

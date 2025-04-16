@@ -1,7 +1,9 @@
 # ZWEATHER
 
-A basic weather CLI written in zig.
-Written to just mess around with building CLIs with zig
+A basic weather CLI written in Zig.
+Written to be instructional with the series on my blog [Implementing A Basic Weather CLI With Zig](https://atempleton.dev/posts/weather-cli-in-zig/)
+
+![zweather](https://vhs.charm.sh/vhs-5HNF94uGlceSecLqQLyjli.gif)
 
 ## Usage
 
