@@ -12,7 +12,6 @@ pub const App = struct {
     units: []const u8,
     c: *Chameleon.RuntimeChameleon,
     location: []const u8,
-    weatherCodes: std.AutoArrayHashMap(u32, []const u8),
 };
 
 pub const Root = struct {
@@ -56,6 +55,44 @@ pub const Values = struct {
     windSpeed: ?f64,
 };
 
+pub const WeatherCodes = struct {
+    // this is comptime by default since nothing about this structure relies on the runtime
+    const codes = [_]struct { code: u32, description: []const u8 }{
+        .{ .code = 0, .description = "unknown" },
+        .{ .code = 1000, .description = "clear" },
+        .{ .code = 1100, .description = "mostly clear" },
+        .{ .code = 1101, .description = "partly cloudy" },
+        .{ .code = 1102, .description = "mostly cloudy" },
+        .{ .code = 1001, .description = "cloudy" },
+        .{ .code = 2000, .description = "foggy" },
+        .{ .code = 2100, .description = "lightly foggy" },
+        .{ .code = 4000, .description = "drizzling" },
+        .{ .code = 4001, .description = "raining" },
+        .{ .code = 4200, .description = "light raining" },
+        .{ .code = 4201, .description = "heavy raining" },
+        .{ .code = 5000, .description = "snowing" },
+        .{ .code = 5001, .description = "flurring" },
+        .{ .code = 5100, .description = "light snowing" },
+        .{ .code = 5101, .description = "heavy snowing" },
+        .{ .code = 6000, .description = "freezing drizzle" },
+        .{ .code = 6001, .description = "freezing raining" },
+        .{ .code = 6200, .description = "light freezing raining" },
+        .{ .code = 6201, .description = "heavy freezing raining" },
+        .{ .code = 7000, .description = "ice pelleting" },
+        .{ .code = 7101, .description = "heavy ice pelleting" },
+        .{ .code = 7102, .description = "light ice pelleting" },
+        .{ .code = 8000, .description = "thunderstorming" },
+    };
+
+    pub fn getDescription(code: u32) ?[]const u8 {
+        // This will be optimized by the compiler into an efficient lookup
+        inline for (codes) |entry| {
+            if (entry.code == code) return entry.description;
+        }
+        return null;
+    }
+};
+
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -66,9 +103,6 @@ pub fn main() !void {
         std.log.info("API Key for tomorrow.io not found. Please set the environment variable \"TOMORROW_API_KEY\" to your tomorrow.io API key", .{});
         std.process.exit(1);
     };
-
-    var codes = try initWeatherCodes(allocator);
-    defer codes.deinit();
 
     var c = Chameleon.initRuntime(.{ .allocator = allocator });
     defer c.deinit();
@@ -103,7 +137,6 @@ pub fn main() !void {
         .units = units,
         .location = location,
         .c = &c,
-        .weatherCodes = codes,
     };
 
     try fetchWeatherData(app);
@@ -144,10 +177,11 @@ fn fetchWeatherData(app: App) !void {
 
 fn handleDifferentWeather(app: App, data: Root) !void {
     var defaultPreset: Chameleon.RuntimeChameleon = undefined;
+    const normalizedTemperature = if (std.mem.eql(u8, "metric", app.units)) (data.data.values.temperature.? * 1.8) + 32 else data.data.values.temperature.?;
     switch (data.data.values.weatherCode.?) {
         1000, 1100 => {
             defaultPreset = try app.c.bold().yellow().createPreset();
-            if (data.data.values.temperature.? < 65) {
+            if (normalizedTemperature < 65.0) {
                 defaultPreset = try app.c.bold().blueBright().createPreset();
             }
         },
@@ -167,11 +201,10 @@ fn handleDifferentWeather(app: App, data: Root) !void {
             defaultPreset = try app.c.bold().green().createPreset();
         },
     }
-    const normalizedTemperature = if (std.mem.eql(u8, "metric", app.units)) (data.data.values.temperature.? * 1.8) + 32 else data.data.values.temperature.?;
     try defaultPreset.printOut("   Weather For {s} : {s}\n", .{ data.location.name, getEmojiTemperature(normalizedTemperature) });
 
     const weatherCode = data.data.values.weatherCode.?;
-    const currentWeather = app.weatherCodes.get(weatherCode).?;
+    const currentWeather = WeatherCodes.getDescription(weatherCode).?;
 
     try defaultPreset.printOut("   > Currently it is {s} outside {s}\n", .{ currentWeather, getEmojiWeather(weatherCode) });
     try defaultPreset.printOut("   > Temperature: {d:.0}°", .{data.data.values.temperature.?});
@@ -258,34 +291,4 @@ fn cleanLocation(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
     _ = std.mem.replace(u8, input, " ", "_", output);
 
     return output;
-}
-
-fn initWeatherCodes(allocator: std.mem.Allocator) !std.AutoArrayHashMap(u32, []const u8) {
-    var codes = std.AutoArrayHashMap(u32, []const u8).init(allocator);
-    try codes.put(0, "unknown");
-    try codes.put(1000, "clear");
-    try codes.put(1100, "mostly clear");
-    try codes.put(1101, "partly cloudy");
-    try codes.put(1102, "mostly cloudy");
-    try codes.put(1001, "cloudy");
-    try codes.put(2000, "foggy");
-    try codes.put(2100, "lightly foggy");
-    try codes.put(4000, "drizzling");
-    try codes.put(4001, "raining");
-    try codes.put(4200, "light raining");
-    try codes.put(4201, "heavy raining");
-    try codes.put(5000, "snowing");
-    try codes.put(5001, "flurring");
-    try codes.put(5100, "light snowing");
-    try codes.put(5101, "heavy snowing");
-    try codes.put(6000, "freezing drizzle");
-    try codes.put(6001, "freezing raining");
-    try codes.put(6200, "light freezing raining");
-    try codes.put(6201, "heavy freezing raining");
-    try codes.put(7000, "ice pelleting");
-    try codes.put(7101, "heavy ice pelleting");
-    try codes.put(7102, "light ice pelleting");
-    try codes.put(8000, "thunderstorming");
-
-    return codes;
 }
