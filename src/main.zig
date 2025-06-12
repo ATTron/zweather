@@ -46,8 +46,8 @@ pub const Values = struct {
     snowIntensity: ?f64,
     temperature: ?f64,
     temperatureApparent: ?f64,
-    uvHealthConcern: ?f64,
-    uvIndex: ?f64,
+    uvHealthConcern: ?f64 = null,
+    uvIndex: ?f64 = null,
     visibility: ?f64,
     weatherCode: ?u32,
     windDirection: ?f64,
@@ -227,7 +227,9 @@ fn handleDifferentWeather(app: App, data: Root) !void {
     try defaultPreset.printOut("   > Wind Speed: {d:.0} m/s\n", .{data.data.values.windSpeed.?});
     try defaultPreset.printOut("   > Chance Of Rain: {d:.0}%\n", .{data.data.values.precipitationProbability.?});
     try defaultPreset.printOut("   > Humidity: {d:.0}%\n", .{data.data.values.humidity.?});
-    try defaultPreset.printOut("   > UV Index: {d:.0}\n", .{data.data.values.uvIndex.?});
+    if (data.data.values.uvIndex != null) {
+        try defaultPreset.printOut("   > UV Index: {d:.0}\n", .{data.data.values.uvIndex.?});
+    }
 }
 
 fn getEmojiTemperature(code: f64) []const u8 {

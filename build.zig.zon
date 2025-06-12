@@ -2,7 +2,7 @@
     .name = .zweather,
     .version = "0.0.0",
     .fingerprint = 0x890e5e21f0a2f4b6, // Changing this has security and trust implications.
-    .minimum_zig_version = "0.15.0-dev.45+24db007cd",
+    .minimum_zig_version = "0.15.0-dev.631+9a3540d61",
     .dependencies = .{
         .chameleon = .{
             .url = "git+https://github.com/tr1ckydev/chameleon#9724f89ca2e56b33609090a6c6c6c1097844d1ee",
