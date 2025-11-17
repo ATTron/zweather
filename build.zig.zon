@@ -1,7 +1,6 @@
 .{
-    .name = .zweather,
+    .name = "zweather",
     .version = "0.0.0",
-    .fingerprint = 0x890e5e21f0a2f4b6, // Changing this has security and trust implications.
     .minimum_zig_version = "0.15.0-dev.631+9a3540d61",
     .dependencies = .{
         .chameleon = .{
