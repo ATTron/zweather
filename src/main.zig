@@ -12,6 +12,7 @@ pub const App = struct {
     units: []const u8,
     c: *Chameleon.RuntimeChameleon,
     location: []const u8,
+    io: std.Io,
 };
 
 pub const Root = struct {
@@ -32,27 +33,30 @@ pub const Location = struct {
 };
 
 pub const Values = struct {
-    cloudBase: ?f64,
-    cloudCeiling: ?f64,
-    cloudCover: ?f64,
-    dewPoint: ?f64,
+    altimeterSetting: ?f64 = null,
+    cloudBase: ?f64 = null,
+    cloudCeiling: ?f64 = null,
+    cloudCover: ?f64 = null,
+    dewPoint: ?f64 = null,
     freezingRainIntensity: ?f64 = null,
-    humidity: ?f64,
-    precipitationProbability: ?f64,
-    pressureSeaLevel: ?f64,
-    pressureSurfaceLevel: ?f64,
+    hailProbability: ?f64 = null,
+    hailSize: ?f64 = null,
+    humidity: ?f64 = null,
+    precipitationProbability: ?f64 = null,
+    pressureSeaLevel: ?f64 = null,
+    pressureSurfaceLevel: ?f64 = null,
     rainIntensity: ?f64 = null,
     sleetIntensity: ?f64 = null,
     snowIntensity: ?f64 = null,
-    temperature: ?f64,
-    temperatureApparent: ?f64,
+    temperature: ?f64 = null,
+    temperatureApparent: ?f64 = null,
     uvHealthConcern: ?f64 = null,
     uvIndex: ?f64 = null,
-    visibility: ?f64,
-    weatherCode: ?u32,
-    windDirection: ?f64,
-    windGust: ?f64,
-    windSpeed: ?f64,
+    visibility: ?f64 = null,
+    weatherCode: ?u32 = null,
+    windDirection: ?f64 = null,
+    windGust: ?f64 = null,
+    windSpeed: ?f64 = null,
 };
 
 pub const WeatherCodes = struct {
@@ -93,19 +97,8 @@ pub const WeatherCodes = struct {
     }
 };
 
-pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-
-    const allocator = arena.allocator();
-
-    const apiKey = std.process.getEnvVarOwned(allocator, "TOMORROW_API_KEY") catch {
-        std.log.info("API Key for tomorrow.io not found. Please set the environment variable \"TOMORROW_API_KEY\" to your tomorrow.io API key", .{});
-        std.process.exit(1);
-    };
-
-    var c = Chameleon.initRuntime(.{ .allocator = allocator });
-    defer c.deinit();
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
 
     const params = comptime clap.parseParamsComptime(
         \\-h, --help              Display this help and exit
@@ -113,20 +106,38 @@ pub fn main() !void {
         \\-u, --units <str>       Which units to use (metric vs imperial)
     );
 
+    var args_iter = std.process.Args.Iterator.init(init.minimal.args);
+    _ = args_iter.next(); // Skip program name
     var diag = clap.Diagnostic{};
-    var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
+    var res = clap.parseEx(clap.Help, &params, clap.parsers.default, &args_iter, .{
         .diagnostic = &diag,
         .allocator = allocator,
     }) catch |err| {
-        diag.report(std.io.getStdErr().writer(), err) catch {};
+        var stderr_buf: [4096]u8 = undefined;
+        var stderr_writer = std.Io.File.stderr().writer(init.io, &stderr_buf);
+        diag.report(&stderr_writer.interface, err) catch {};
+        _ = stderr_writer.interface.flush() catch {};
         return err;
     };
 
     defer res.deinit();
 
     if (res.args.help != 0) {
-        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+        var stderr_buf: [4096]u8 = undefined;
+        var stderr_writer = std.Io.File.stderr().writer(init.io, &stderr_buf);
+        clap.help(&stderr_writer.interface, clap.Help, &params, .{}) catch {};
+        _ = stderr_writer.interface.flush() catch {};
+        return;
     }
+
+    const apiKey = std.process.Environ.getAlloc(init.minimal.environ, allocator, "TOMORROW_API_KEY") catch |err| {
+        std.log.info("API Key for tomorrow.io not found. Please set the environment variable \"TOMORROW_API_KEY\" to your tomorrow.io API key", .{});
+        return err;
+    };
+    defer allocator.free(apiKey);
+
+    var c = Chameleon.initRuntime(.{ .allocator = allocator, .io = init.io });
+    defer c.deinit();
 
     const location = res.args.location orelse "New York City";
     const units = res.args.units orelse "imperial";
@@ -137,39 +148,45 @@ pub fn main() !void {
         .units = units,
         .location = location,
         .c = &c,
+        .io = init.io,
     };
 
     try fetchWeatherData(app);
 }
 
 fn fetchWeatherData(app: App) !void {
-    var client = http.Client{ .allocator = app.allocator };
+    var client = http.Client{ .allocator = app.allocator, .io = app.io };
     defer client.deinit();
 
     const uriString = "{s}location={s}&units={s}&apikey={s}";
     const formattedLocation = try cleanLocation(app.allocator, app.location);
+    defer app.allocator.free(formattedLocation);
+
     const url = try std.fmt.allocPrint(app.allocator, uriString, .{ TOMORROW_URL, formattedLocation, app.units, app.apiKey });
     defer app.allocator.free(url);
 
     const uri = try std.Uri.parse(url);
 
-    const serverHeaderBuffer: []u8 = try app.allocator.alloc(u8, 1024 * 8);
-    defer app.allocator.free(serverHeaderBuffer);
-
-    // Make the connection to the server.
-    var req = try client.open(.GET, uri, .{
-        .server_header_buffer = serverHeaderBuffer,
+    var req = try client.request(.GET, uri, .{
+        .redirect_behavior = @enumFromInt(3),
     });
     defer req.deinit();
 
-    try req.send();
-    try req.finish();
-    try req.wait();
+    try req.sendBodiless();
 
-    const body = try req.reader().readAllAlloc(app.allocator, 1024 * 8);
-    defer app.allocator.free(body);
+    var header_buffer: [1024]u8 = undefined;
+    var response = try req.receiveHead(&header_buffer);
 
-    const parsed = try json.parseFromSlice(Root, app.allocator, body, .{});
+    var body = try std.ArrayList(u8).initCapacity(app.allocator, 4096);
+    defer body.deinit(app.allocator);
+
+    var decompress: http.Decompress = undefined;
+    var decompress_buffer: [65536]u8 = undefined;
+    const reader = response.readerDecompressing(&header_buffer, &decompress, &decompress_buffer);
+
+    reader.appendRemainingUnlimited(app.allocator, &body) catch {};
+
+    const parsed = try json.parseFromSlice(Root, app.allocator, body.items, .{ .ignore_unknown_fields = true });
     defer parsed.deinit();
 
     try handleDifferentWeather(app, parsed.value);
@@ -180,9 +197,10 @@ fn handleDifferentWeather(app: App, data: Root) !void {
     const normalizedTemperature = if (std.mem.eql(u8, "metric", app.units)) (data.data.values.temperature.? * 1.8) + 32 else data.data.values.temperature.?;
     switch (data.data.values.weatherCode.?) {
         1000, 1100 => {
-            defaultPreset = try app.c.bold().yellow().createPreset();
             if (normalizedTemperature < 65.0) {
                 defaultPreset = try app.c.bold().blueBright().createPreset();
+            } else {
+                defaultPreset = try app.c.bold().yellow().createPreset();
             }
         },
         1101, 1102, 1001, 2000, 2100 => {
@@ -201,6 +219,8 @@ fn handleDifferentWeather(app: App, data: Root) !void {
             defaultPreset = try app.c.bold().green().createPreset();
         },
     }
+    defer defaultPreset.deinit();
+
     try defaultPreset.printOut("   Weather For {s} : {s}\n", .{ data.location.name, getEmojiTemperature(normalizedTemperature) });
 
     const weatherCode = data.data.values.weatherCode.?;
